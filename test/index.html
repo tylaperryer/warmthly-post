@@ -720,13 +720,8 @@
       <!-- World Map Heatmap -->
       <div class="world-map-container">
         <div class="world-map-svg" id="worldMapSvg">
-          <!-- SVG will be embedded here by JavaScript -->
+          <!-- SVG will be loaded from worlddots.svg by JavaScript -->
         </div>
-      </div>
-      
-      <!-- Embedded SVG Content (hidden, will be cloned) -->
-      <div id="embedded-worlddots-svg" style="display: none;">
-        <!-- SVG content loaded once and embedded here -->
       </div>
       
       <!-- Timeline Wrapper with Line -->
@@ -1099,28 +1094,20 @@
 
       async loadSVG() {
         try {
-          // Check if SVG is already embedded in the page
-          const embeddedSvg = document.getElementById('embedded-worlddots-svg');
-          if (embeddedSvg) {
-            // Clone the embedded SVG
-            this.svgContainer.innerHTML = embeddedSvg.innerHTML;
-            this.svg = this.svgContainer.querySelector('svg');
-            if (this.svg && !this.svg.getAttribute('viewBox')) {
-              this.svg.setAttribute('viewBox', '0 0 3129 1736');
-            }
-            return;
-          }
-          
-          // Fallback: Load SVG file one time and embed it
+          // Load SVG file from worlddots.svg
           const response = await fetch('./worlddots.svg');
           if (!response.ok) {
-            throw new Error('SVG file not found');
+            // Try alternative path
+            const altResponse = await fetch('/worlddots.svg');
+            if (!altResponse.ok) {
+              throw new Error('SVG file not found. Please ensure worlddots.svg is in the same directory or root.');
+            }
+            const svgText = await altResponse.text();
+            this.svgContainer.innerHTML = svgText;
+          } else {
+            const svgText = await response.text();
+            this.svgContainer.innerHTML = svgText;
           }
-          
-          const svgText = await response.text();
-          
-          // Insert SVG directly into container
-          this.svgContainer.innerHTML = svgText;
           
           // Get the SVG element
           this.svg = this.svgContainer.querySelector('svg');
