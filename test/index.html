@@ -609,56 +609,48 @@
         display: block;
       }
       
-      /* Default dot state - dimmed/inactive */
-      .world-map-svg svg circle {
-        fill: rgba(0, 0, 0, 0.5);
-        stroke: rgba(0, 0, 0, 0.3);
-        stroke-width: 0.5;
+      /* Default dot state - dimmed/inactive (for emoji text elements) */
+      .world-map-svg svg text {
         transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: default;
         pointer-events: none;
+        opacity: 0.3;
+        user-select: none;
       }
       
-      /* Heatmap intensity levels */
-      .world-map-svg svg circle.intensity-0 {
-        fill: rgba(0, 0, 0, 0.5);
-        stroke: rgba(0, 0, 0, 0.3);
+      /* Heatmap intensity levels for emoji */
+      .world-map-svg svg text.intensity-0 {
+        opacity: 0.3;
+        filter: brightness(0.8);
       }
       
-      .world-map-svg svg circle.intensity-1 {
-        fill: rgba(255, 140, 66, 0.3);
-        stroke: rgba(255, 140, 66, 0.4);
-        filter: drop-shadow(0 0 3px rgba(255, 140, 66, 0.3));
+      .world-map-svg svg text.intensity-1 {
+        opacity: 0.5;
+        filter: brightness(1.2);
       }
       
-      .world-map-svg svg circle.intensity-2 {
-        fill: rgba(255, 140, 66, 0.5);
-        stroke: rgba(255, 140, 66, 0.6);
-        filter: drop-shadow(0 0 5px rgba(255, 140, 66, 0.4));
+      .world-map-svg svg text.intensity-2 {
+        opacity: 0.7;
+        filter: brightness(1.4);
       }
       
-      .world-map-svg svg circle.intensity-3 {
-        fill: rgba(255, 140, 66, 0.7);
-        stroke: rgba(255, 140, 66, 0.8);
-        filter: drop-shadow(0 0 7px rgba(255, 140, 66, 0.5));
+      .world-map-svg svg text.intensity-3 {
+        opacity: 0.85;
+        filter: brightness(1.6);
       }
       
-      .world-map-svg svg circle.intensity-4 {
-        fill: #FF8C42;
-        stroke: #FF8C42;
-        stroke-width: 1.5;
-        filter: drop-shadow(0 0 10px rgba(255, 140, 66, 0.7));
-        animation: pulse-dot 2s ease-in-out infinite;
+      .world-map-svg svg text.intensity-4 {
+        opacity: 1;
+        filter: brightness(1.8) drop-shadow(0 0 8px rgba(255, 223, 0, 0.8));
+        animation: pulse-emoji 2s ease-in-out infinite;
       }
       
-      @keyframes pulse-dot {
+      @keyframes pulse-emoji {
         0%, 100% {
-          opacity: 1;
           transform: scale(1);
         }
         50% {
-          opacity: 0.9;
-          transform: scale(1.1);
+          transform: scale(1.15);
         }
       }
       
@@ -1144,40 +1136,94 @@
       }
 
       initializeDots() {
-        if (!this.svg) return;
-        
-        // Find all circle elements (dots)
-        const circles = this.svg.querySelectorAll('circle');
-        let dotIndex = 0;
-        
-        circles.forEach((circle) => {
-          // Create unique ID based on coordinates and index
-          const cx = circle.getAttribute('cx');
-          const cy = circle.getAttribute('cy');
-          const dotId = `dot-${cx}-${cy}-${dotIndex}`;
+        try {
+          if (!this.svg) {
+            console.error('[WorldMap] ❌ SVG element not found');
+            return;
+          }
           
-          // Assign ID
-          circle.id = dotId;
+          // Find all circle elements (dots)
+          const circles = this.svg.querySelectorAll('circle');
           
-          // Add default intensity class
-          circle.classList.add('intensity-0');
+          if (circles.length === 0) {
+            console.warn('[WorldMap] ⚠️ No circle elements found in SVG');
+            return;
+          }
           
-          // Store reference
-          this.dots.set(dotId, {
-            element: circle,
-            intensity: 0,
-            data: null
+          let dotIndex = 0;
+          let errors = 0;
+          
+          circles.forEach((circle) => {
+            try {
+              // Create unique ID based on coordinates and index
+              const cx = circle.getAttribute('cx');
+              const cy = circle.getAttribute('cy');
+              
+              if (!cx || !cy) {
+                console.warn(`[WorldMap] ⚠️ Circle missing coordinates at index ${dotIndex}`);
+                errors++;
+                return;
+              }
+              
+              const dotId = `dot-${cx}-${cy}-${dotIndex}`;
+              
+              // Replace circle with lightbulb emoji text element
+              const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              text.setAttribute('x', cx);
+              text.setAttribute('y', cy);
+              text.setAttribute('text-anchor', 'middle');
+              text.setAttribute('dominant-baseline', 'middle');
+              text.setAttribute('font-size', '20');
+              text.textContent = '💡';
+              text.id = dotId;
+              text.classList.add('intensity-0');
+              
+              // Replace circle with text element
+              if (circle.parentNode) {
+                circle.parentNode.replaceChild(text, circle);
+              } else {
+                console.warn(`[WorldMap] ⚠️ Circle has no parent node at index ${dotIndex}`);
+                errors++;
+                return;
+              }
+              
+              // Store reference to text element
+              this.dots.set(dotId, {
+                element: text,
+                intensity: 0,
+                data: null,
+                cx: parseFloat(cx),
+                cy: parseFloat(cy),
+                index: dotIndex
+              });
+              
+              dotIndex++;
+            } catch (err) {
+              console.error(`[WorldMap] ❌ Error processing circle at index ${dotIndex}:`, err);
+              errors++;
+            }
           });
           
-          dotIndex++;
-        });
-        
-        console.log(`Initialized ${this.dots.size} dots`);
+          console.log(`[WorldMap] ✓ Initialized ${this.dots.size} dots (${errors} errors)`);
+          
+          // DEBUG: Log first 5 dot coordinates
+          let count = 0;
+          this.dots.forEach((dotInfo, dotId) => {
+            if (count < 5) {
+              const cx = dotInfo.element.getAttribute('x');
+              const cy = dotInfo.element.getAttribute('y');
+              console.log(`[WorldMap] Sample dot: ${dotId} at (${cx}, ${cy})`);
+              count++;
+            }
+          });
+        } catch (err) {
+          console.error('[WorldMap] ❌ Fatal error in initializeDots():', err);
+        }
       }
 
       async connectToFirebase() {
         // SIMULATION MODE — WORKS 100% EVEN WITHOUT FIREBASE
-        console.log('Running world map in simulation mode...');
+        console.log('[WorldMap] Running world map in simulation mode...');
 
         // Real dots from your actual worlddots.svg (hand-picked, tested, working)
         const simulatedHotspots = [
@@ -1202,29 +1248,84 @@
           { cx: 1200.5, cy: 900.1, intensity: 3 },
         ];
 
+        // Wait longer to ensure dots are initialized
         setTimeout(() => {
-          const circles = this.svg.querySelectorAll('circle');
-          
-          simulatedHotspots.forEach(hot => {
-            circles.forEach(circle => {
-              const cx = parseFloat(circle.getAttribute('cx'));
-              const cy = parseFloat(circle.getAttribute('cy'));
-              // Much more forgiving matching
-              if (Math.abs(cx - hot.cx) < 20 && Math.abs(cy - hot.cy) < 20) {
-                const dotId = circle.id;
-                this.updateDot({
-                  dotId,
-                  intensity: hot.intensity,
-                  location: "Active community"
+          try {
+            if (!this.svg) {
+              console.error('[WorldMap] ❌ SVG not loaded yet');
+              return;
+            }
+
+            if (this.dots.size === 0) {
+              console.error('[WorldMap] ❌ No dots initialized. Check initializeDots()');
+              return;
+            }
+
+            let dotsUpdated = 0;
+            let dotsNotFound = 0;
+            
+            simulatedHotspots.forEach((hot, hotIndex) => {
+              try {
+                let matched = false;
+                
+                // Use the dots Map directly instead of querying DOM
+                this.dots.forEach((dotInfo, dotId) => {
+                  try {
+                    const element = dotInfo.element;
+                    if (!element) {
+                      console.warn(`[WorldMap] ⚠️ Dot ${dotId} has no element`);
+                      return;
+                    }
+
+                    const cx = parseFloat(element.getAttribute('x') || dotInfo.cx);
+                    const cy = parseFloat(element.getAttribute('y') || dotInfo.cy);
+                    
+                    if (isNaN(cx) || isNaN(cy)) {
+                      console.warn(`[WorldMap] ⚠️ Invalid coordinates for dot ${dotId}`);
+                      return;
+                    }
+                    
+                    // Exact or very close match (within 1 pixel)
+                    if (Math.abs(cx - hot.cx) < 1 && Math.abs(cy - hot.cy) < 1) {
+                      const success = this.updateDot({
+                        dotId: dotId,
+                        intensity: hot.intensity,
+                        location: "Active community"
+                      });
+                      
+                      if (success) {
+                        dotsUpdated++;
+                        console.log(`[WorldMap] ✓ Updated dot at (${cx}, ${cy}) with intensity ${hot.intensity}`);
+                        matched = true;
+                      }
+                    }
+                  } catch (err) {
+                    console.error(`[WorldMap] ❌ Error matching hotspot ${hotIndex} to dot ${dotId}:`, err);
+                  }
                 });
+                
+                if (!matched) {
+                  dotsNotFound++;
+                  console.warn(`[WorldMap] ⚠️ No dot found for hotspot at (${hot.cx}, ${hot.cy})`);
+                }
+              } catch (err) {
+                console.error(`[WorldMap] ❌ Error processing hotspot ${hotIndex}:`, err);
               }
             });
-          });
-          console.log("World map simulation: 15+ dots now glowing 🔥");
-        }, 800);
+            
+            console.log(`[WorldMap] ✓ Simulation complete: ${dotsUpdated} dots glowing 🔥 (${dotsNotFound} not found)`);
+            
+            if (dotsUpdated === 0) {
+              console.warn('[WorldMap] ⚠️ No dots were updated. Check coordinate matching.');
+              console.log('[WorldMap] 💡 Tip: Check console for sample dot coordinates from initializeDots()');
+            }
+          } catch (err) {
+            console.error('[WorldMap] ❌ Fatal error in simulation:', err);
+          }
+        }, 1500); // Increased delay to ensure everything is ready
         
         if (!this.db) {
-          console.log('Using simulated data (Firebase not configured)');
+          console.log('[WorldMap] Using simulated data (Firebase not configured)');
           return;
         }
 
@@ -1239,21 +1340,31 @@
           this.unsubscribe = onSnapshot(
             heatmapRef,
             (snapshot) => {
-              // Clear all intensities first
-              this.clearAllIntensities();
-              
-              // Process each document
-              snapshot.forEach((doc) => {
-                const data = doc.data();
-                this.updateDot(data);
-              });
+              try {
+                // Clear all intensities first
+                this.clearAllIntensities();
+                
+                // Process each document
+                snapshot.forEach((doc) => {
+                  try {
+                    const data = doc.data();
+                    if (data) {
+                      this.updateDot(data);
+                    }
+                  } catch (err) {
+                    console.error(`[WorldMap] ❌ Error processing document ${doc.id}:`, err);
+                  }
+                });
+              } catch (err) {
+                console.error('[WorldMap] ❌ Error processing Firebase snapshot:', err);
+              }
             },
             (error) => {
-              console.error('Firebase snapshot error:', error);
+              console.error('[WorldMap] ❌ Firebase snapshot error:', error);
             }
           );
         } catch (error) {
-          console.error('Error connecting to Firebase:', error);
+          console.error('[WorldMap] ❌ Error connecting to Firebase:', error);
         }
       }
 
@@ -1266,59 +1377,88 @@
         //   ...other data
         // }
         
-        const dotId = data.dotId;
-        
-        if (!dotId) {
-          console.warn('No dotId found in data:', data);
-          return;
+        try {
+          if (!data || typeof data !== 'object') {
+            console.warn('[WorldMap] ⚠️ Invalid data passed to updateDot():', data);
+            return false;
+          }
+          
+          const dotId = data.dotId;
+          
+          if (!dotId || typeof dotId !== 'string') {
+            console.warn('[WorldMap] ⚠️ No valid dotId found in data:', data);
+            return false;
+          }
+          
+          const dotInfo = this.dots.get(dotId);
+          
+          if (!dotInfo) {
+            console.warn(`[WorldMap] ⚠️ Dot not found: ${dotId}. Available dots: ${this.dots.size}`);
+            return false;
+          }
+          
+          if (!dotInfo.element) {
+            console.error(`[WorldMap] ❌ Dot ${dotId} has no element reference`);
+            return false;
+          }
+          
+          // Update dot state
+          const intensity = Math.max(0, Math.min(4, parseInt(data.intensity) || 0));
+          dotInfo.intensity = intensity;
+          dotInfo.data = data;
+          
+          const dot = dotInfo.element;
+          
+          // Remove all intensity classes
+          dot.classList.remove('intensity-0', 'intensity-1', 'intensity-2', 'intensity-3', 'intensity-4');
+          
+          // Add new intensity class
+          dot.classList.add(`intensity-${intensity}`);
+          
+          // Apply custom color if provided
+          if (data.color && typeof data.color === 'string') {
+            dot.style.fill = data.color;
+            dot.style.stroke = data.color;
+          }
+          
+          // Store data as data attributes for tooltips/hover
+          if (data.location) dot.setAttribute('data-location', data.location);
+          if (data.count) dot.setAttribute('data-count', data.count);
+          if (data.timestamp) dot.setAttribute('data-timestamp', data.timestamp);
+          
+          return true;
+        } catch (err) {
+          console.error(`[WorldMap] ❌ Error updating dot ${data?.dotId || 'unknown'}:`, err);
+          return false;
         }
-        
-        const dotInfo = this.dots.get(dotId);
-        
-        if (!dotInfo) {
-          // Try to find by coordinates if dotId doesn't match
-          // This allows flexibility in how dots are identified
-          return;
-        }
-        
-        // Update dot state
-        const intensity = Math.max(0, Math.min(4, data.intensity || 0));
-        dotInfo.intensity = intensity;
-        dotInfo.data = data;
-        
-        const dot = dotInfo.element;
-        
-        // Remove all intensity classes
-        dot.classList.remove('intensity-0', 'intensity-1', 'intensity-2', 'intensity-3', 'intensity-4');
-        
-        // Add new intensity class
-        dot.classList.add(`intensity-${intensity}`);
-        
-        // Apply custom color if provided
-        if (data.color) {
-          dot.style.fill = data.color;
-          dot.style.stroke = data.color;
-        }
-        
-        // Store data as data attributes for tooltips/hover
-        if (data.location) dot.setAttribute('data-location', data.location);
-        if (data.count) dot.setAttribute('data-count', data.count);
-        if (data.timestamp) dot.setAttribute('data-timestamp', data.timestamp);
       }
 
       clearAllIntensities() {
-        this.dots.forEach((dotInfo) => {
-          dotInfo.intensity = 0;
-          dotInfo.data = null;
-          
-          const dot = dotInfo.element;
-          dot.classList.remove('intensity-1', 'intensity-2', 'intensity-3', 'intensity-4');
-          dot.classList.add('intensity-0');
-          
-          // Reset custom colors
-          dot.style.fill = '';
-          dot.style.stroke = '';
-        });
+        try {
+          this.dots.forEach((dotInfo) => {
+            try {
+              dotInfo.intensity = 0;
+              dotInfo.data = null;
+              
+              const dot = dotInfo.element;
+              if (!dot) {
+                console.warn('[WorldMap] ⚠️ Dot has no element in clearAllIntensities()');
+                return;
+              }
+              
+              dot.classList.remove('intensity-1', 'intensity-2', 'intensity-3', 'intensity-4');
+              dot.classList.add('intensity-0');
+              
+              // Reset custom colors (for text elements, these may not apply but safe to clear)
+              dot.style.fill = '';
+              dot.style.stroke = '';
+            } catch (err) {
+              console.error('[WorldMap] ❌ Error clearing intensity for dot:', err);
+            }
+          });
+        } catch (err) {
+          console.error('[WorldMap] ❌ Fatal error in clearAllIntensities():', err);
+        }
       }
 
       destroy() {
