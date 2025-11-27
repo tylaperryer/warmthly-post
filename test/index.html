@@ -597,7 +597,8 @@
       
       .world-map-svg {
         width: 100%;
-        max-width: 1200px;
+        max-width: 600px;
+        min-height: 200px;
         height: auto;
         display: block;
       }
@@ -610,17 +611,18 @@
       
       /* Default dot state - dimmed/inactive */
       .world-map-svg svg circle {
-        fill: rgba(0, 0, 0, 0.15);
-        stroke: rgba(0, 0, 0, 0.1);
+        fill: rgba(0, 0, 0, 0.5);
+        stroke: rgba(0, 0, 0, 0.3);
         stroke-width: 0.5;
         transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        cursor: pointer;
+        cursor: default;
+        pointer-events: none;
       }
       
       /* Heatmap intensity levels */
       .world-map-svg svg circle.intensity-0 {
-        fill: rgba(0, 0, 0, 0.15);
-        stroke: rgba(0, 0, 0, 0.1);
+        fill: rgba(0, 0, 0, 0.5);
+        stroke: rgba(0, 0, 0, 0.3);
       }
       
       .world-map-svg svg circle.intensity-1 {
@@ -658,12 +660,6 @@
           opacity: 0.9;
           transform: scale(1.1);
         }
-      }
-      
-      /* Hover effect */
-      .world-map-svg svg circle:hover {
-        stroke-width: 2;
-        transform: scale(1.2);
       }
       
       @media (max-width: 768px) {
@@ -724,7 +720,9 @@
       
       <!-- World Map Heatmap -->
       <div class="world-map-container">
-        <div class="world-map-svg" id="worldMapSvg"></div>
+        <div class="world-map-svg" id="worldMapSvg">
+          <!-- SVG will be loaded from worlddots.svg by JavaScript -->
+        </div>
       </div>
       
       <!-- Timeline Wrapper with Line -->
@@ -968,7 +966,7 @@
         sig.src = '/signature.png';
         sig.alt = "Founder's handwritten signature";
         sig.style.cssText = `
-          max-height: 60px;
+          max-height: 180px;
           margin: 1.5rem auto 0;
           display: block;
           opacity: 0.85;
@@ -1071,7 +1069,13 @@
       }
 
       async init() {
-        // Load Firebase SDK
+        // Load SVG first (before Firebase)
+        await this.loadSVG();
+        
+        // Initialize dots (add IDs)
+        this.initializeDots();
+        
+        // Load Firebase SDK (optional - will use simulated data if not configured)
         try {
           const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
           const { getFirestore, collection, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
@@ -1080,31 +1084,39 @@
           const app = initializeApp(this.firebaseConfig);
           this.db = getFirestore(app);
           
-          // Load SVG
-          await this.loadSVG();
-          
-          // Initialize dots (add IDs)
-          this.initializeDots();
-          
           // Connect to Firebase
           this.connectToFirebase();
         } catch (error) {
-          console.error('World Map Heatmap initialization error:', error);
+          console.log('Firebase not configured, using simulated data');
+          // Use simulated data instead
+          this.connectToFirebase();
         }
       }
 
       async loadSVG() {
         try {
-          // Load your SVG file - try multiple paths
-          let response = await fetch('./worlddots.svg');
-          if (!response.ok) {
-            response = await fetch('/worlddots.svg');
-          }
-          if (!response.ok) {
-            throw new Error('SVG file not found. Please ensure worlddots.svg is in the same directory or root.');
+          // Try multiple paths to find the SVG file
+          const paths = ['./worlddots.svg', 'worlddots.svg', '/worlddots.svg'];
+          let svgText = null;
+          let lastError = null;
+          
+          for (const path of paths) {
+            try {
+              const response = await fetch(path);
+              if (response.ok) {
+                svgText = await response.text();
+                console.log(`SVG loaded successfully from: ${path}`);
+                break;
+              }
+            } catch (err) {
+              lastError = err;
+              console.log(`Failed to load from ${path}:`, err);
+            }
           }
           
-          const svgText = await response.text();
+          if (!svgText) {
+            throw new Error(`SVG file not found. Tried: ${paths.join(', ')}. Error: ${lastError?.message || 'Unknown error'}`);
+          }
           
           // Insert SVG into container
           this.svgContainer.innerHTML = svgText;
@@ -1113,7 +1125,7 @@
           this.svg = this.svgContainer.querySelector('svg');
           
           if (!this.svg) {
-            throw new Error('SVG not found in loaded content');
+            throw new Error('SVG element not found in loaded content');
           }
           
           // Ensure viewBox is set correctly
@@ -1121,8 +1133,13 @@
             this.svg.setAttribute('viewBox', '0 0 3129 1736');
           }
           
+          console.log('SVG loaded and initialized successfully');
+          
         } catch (error) {
           console.error('Error loading SVG:', error);
+          // Create empty SVG as fallback
+          this.svgContainer.innerHTML = '<svg width="3129" height="1736" viewBox="0 0 3129 1736" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>';
+          this.svg = this.svgContainer.querySelector('svg');
         }
       }
 
@@ -1159,8 +1176,57 @@
       }
 
       async connectToFirebase() {
+        // Simulated data for Texas - light up dots in Texas area
+        // Texas coordinates approximately: cx 800-1000, cy 1100-1300
+        const texasDots = [
+          { cx: 855, cy: 1245, intensity: 3 },
+          { cx: 880, cy: 1245, intensity: 4 },
+          { cx: 905, cy: 1245, intensity: 3 },
+          { cx: 930, cy: 1245, intensity: 2 },
+          { cx: 855, cy: 1221, intensity: 3 },
+          { cx: 880, cy: 1221, intensity: 4 },
+          { cx: 905, cy: 1221, intensity: 3 },
+          { cx: 930, cy: 1221, intensity: 2 },
+          { cx: 855, cy: 1197, intensity: 2 },
+          { cx: 880, cy: 1197, intensity: 3 },
+          { cx: 905, cy: 1197, intensity: 2 },
+          { cx: 930, cy: 1197, intensity: 2 },
+          { cx: 780, cy: 1245, intensity: 2 },
+          { cx: 805, cy: 1245, intensity: 3 },
+          { cx: 830, cy: 1245, intensity: 2 },
+          { cx: 755, cy: 1221, intensity: 1 },
+          { cx: 780, cy: 1221, intensity: 2 },
+          { cx: 805, cy: 1221, intensity: 3 },
+          { cx: 830, cy: 1221, intensity: 2 },
+          { cx: 755, cy: 1197, intensity: 1 },
+          { cx: 780, cy: 1197, intensity: 2 },
+          { cx: 805, cy: 1197, intensity: 2 },
+          { cx: 830, cy: 1197, intensity: 1 }
+        ];
+        
+        // Apply simulated Texas data
+        setTimeout(() => {
+          texasDots.forEach(dot => {
+            // Find matching circle by coordinates
+            const circles = this.svg.querySelectorAll('circle');
+            circles.forEach(circle => {
+              const cx = parseFloat(circle.getAttribute('cx'));
+              const cy = parseFloat(circle.getAttribute('cy'));
+              // Match within 5 pixels
+              if (Math.abs(cx - dot.cx) < 5 && Math.abs(cy - dot.cy) < 5) {
+                const dotId = circle.id || `dot-${cx}-${cy}`;
+                this.updateDot({
+                  dotId: dotId,
+                  intensity: dot.intensity,
+                  location: 'Texas, USA'
+                });
+              }
+            });
+          });
+        }, 500);
+        
         if (!this.db) {
-          console.error('Firebase not initialized');
+          console.log('Using simulated data (Firebase not configured)');
           return;
         }
 
