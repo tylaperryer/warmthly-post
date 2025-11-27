@@ -17,7 +17,7 @@
       /* --- ANTI-FLASH AND PERFORMANCE FIXES --- */
       :root { color-scheme: light; }
       html { background-color: #fff6f1; min-height: 100%; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
-      html::-webkit-scrollbar { display: none; }
+      html::-webkit-scrollbar { display: none; width: 0; height: 0; }
       body { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out; }
       body.fonts-loaded { opacity: 1; visibility: visible; }
       /* --- END ANTI-FLASH FIXES --- */
@@ -32,11 +32,31 @@
       body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #2c2c2c; background: #fff6f1; min-height: 100vh; position: relative; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
       body::-webkit-scrollbar { display: none; }
       
-      body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: radial-gradient(circle at 20% 30%, rgba(255,140,66,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,182,193,0.12) 0%, transparent 50%), radial-gradient(circle at 40% 70%, rgba(173,216,230,0.1) 0%, transparent 50%), radial-gradient(circle at 90% 80%, rgba(144,238,144,0.08) 0%, transparent 50%), linear-gradient(135deg, #fff6f1 0%, #ffeee6 100%); z-index: -1; pointer-events: none; }
+      /* Optimized background - no blur for better performance */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: #fff6f1;
+        background-image: 
+          radial-gradient(circle at 20% 30%, rgba(255,140,66,0.12) 0%, transparent 30%, transparent 70%),
+          radial-gradient(circle at 80% 80%, rgba(255,182,193,0.1) 0%, transparent 60%);
+        background-attachment: fixed;
+        pointer-events: none;
+        z-index: -1;
+      }
+      
+      /* Make sure images/icons never cause reflows */
+      img, svg { display: block; max-width: 100%; }
+      
+      /* Fix layout shift when popup opens */
+      body.popup-open {
+        overflow: hidden;
+      }
       
       ::selection { background: #FF8C42; color: #FFFFFF; }
       
-      .container { max-width: 900px; margin: 0 auto; padding: 120px 20px 40px; text-align: center; color: #2c2c2c; position: relative; z-index: 1; }
+      .container { max-width: 1200px; margin: 0 auto; padding: 120px 20px 40px; text-align: center; color: #2c2c2c; position: relative; z-index: 1; }
       
       .top-left-heading { position: fixed; top: 20px; left: 20px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 2rem; color: #FF8C42; user-select: none; z-index: 1001; }
       .top-left-heading .warmthly-link { text-decoration: none; color: #FF8C42; }
@@ -46,15 +66,20 @@
       .stoplight-container { position: relative; z-index: 1002; }
       .stoplight { --tint-color: rgba(255,255,255,0.15); --blur-radius: 12px; --border-color: rgba(255,255,255,0.25); --highlight-color: rgba(255,255,255,0.4); --shadow-color: rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 3px; cursor: pointer; padding: 8px; position: relative; background: var(--tint-color); backdrop-filter: blur(var(--blur-radius)) saturate(1.2); -webkit-backdrop-filter: blur(var(--blur-radius)) saturate(1.2); border: 1px solid var(--border-color); border-radius: 14px; box-shadow: 0 6px 12px var(--shadow-color), inset 0 1px 1px var(--highlight-color), inset 0 -1px 1px rgba(0,0,0,0.05); transition: all 0.4s cubic-bezier(0.25,0.8,0.25,1); overflow: hidden; }
       .stoplight::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%); pointer-events: none; z-index: 1; opacity: 0.7; transition: opacity 0.4s cubic-bezier(0.25,0.8,0.25,1); }
-      .stoplight:hover { background: rgba(255,255,255,0.25); box-shadow: 0 8px 16px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -1px 1px rgba(0,0,0,0.1); }
-      .stoplight:hover::before { opacity: 1; }
+      .stoplight:hover,
+      .stoplight.active { background: rgba(255,255,255,0.25); box-shadow: 0 8px 16px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.5), inset 0 -1px 1px rgba(0,0,0,0.1); }
+      .stoplight:hover::before,
+      .stoplight.active::before { opacity: 1; }
       .stoplight-dot { width: 8px; height: 8px; border-radius: 50%; position: relative; transition: opacity 0.4s cubic-bezier(0.25,0.8,0.25,1); z-index: 2; opacity: 0.3; }
       .stoplight-dot.red { background: #ff4757; }
       .stoplight-dot.yellow { background: #FF8C42; }
       .stoplight-dot.green { background: #2ed573; }
-      .stoplight-container:hover .stoplight-dot.red { animation: stoplight-cycle-red 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
-      .stoplight-container:hover .stoplight-dot.green { animation: stoplight-cycle-green 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
-      .stoplight-container:hover .stoplight-dot.yellow { animation: stoplight-cycle-yellow 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
+      .stoplight-container:hover .stoplight-dot.red,
+      .stoplight.active .stoplight-dot.red { animation: stoplight-cycle-red 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
+      .stoplight-container:hover .stoplight-dot.green,
+      .stoplight.active .stoplight-dot.green { animation: stoplight-cycle-green 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
+      .stoplight-container:hover .stoplight-dot.yellow,
+      .stoplight.active .stoplight-dot.yellow { animation: stoplight-cycle-yellow 10s cubic-bezier(0.25,0.8,0.25,1) infinite; }
       @keyframes stoplight-cycle-red { 0%, 33.33% { opacity: 1; } 33.34%, 100% { opacity: 0.3; } }
       @keyframes stoplight-cycle-green { 0%, 33.33% { opacity: 0.3; } 33.34%, 66.66% { opacity: 1; } 66.67%, 100% { opacity: 0.3; } }
       @keyframes stoplight-cycle-yellow { 0%, 66.66% { opacity: 0.3; } 66.67%, 100% { opacity: 1; } }
@@ -112,6 +137,435 @@
       .info-box { background: rgba(255,140,66,0.08); border-left: 4px solid #FF8C42; padding: 1.5rem; border-radius: 8px; margin: 2rem 0; }
       .info-box p { margin: 0; opacity: 0.9; }
       
+      /* --- TIMELINE LINE --- */
+      .timeline-line {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          rgba(255, 140, 66, 0.2) 0%,
+          rgba(255, 140, 66, 0.4) 20%,
+          rgba(255, 140, 66, 0.4) 80%,
+          rgba(255, 140, 66, 0.2) 100%
+        );
+        transform: translateX(-50%);
+        z-index: 0;
+        pointer-events: none;
+        will-change: transform;
+      }
+      
+      .timeline-wrapper {
+        position: relative;
+        min-height: 100vh;
+      }
+      
+      /* --- TIMELINE CONTAINER --- */
+      .timeline-container {
+        position: relative;
+        max-width: 1000px;
+        margin: 4rem auto;
+        padding: 0 20px;
+      }
+      
+      .timeline-entry {
+        position: relative;
+        margin: 6rem 0;
+        display: flex;
+        align-items: center;
+        min-height: 120px;
+      }
+      
+      .timeline-entry:nth-child(even) {
+        flex-direction: row-reverse;
+      }
+      
+      /* Perfectly centered timeline dot – always on the intersection */
+      .timeline-marker {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) translateZ(0);
+        -webkit-transform: translate(-50%, -50%) translateZ(0);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #FF8C42;
+        border: 4px solid #fff6f1;
+        box-shadow: 
+          0 4px 12px rgba(0,0,0,0.15),
+          0 0 0 1px rgba(255,140,66,0.2);
+        z-index: 10;
+        pointer-events: none;
+      }
+      
+      /* Colour classes */
+      .timeline-marker.orange { background: #FF8C42; }
+      .timeline-marker.green { background: #2ed573; }
+      .timeline-marker.red { background: #ff4757; }
+      .timeline-marker.blue { background: #5f27cd; }
+      
+      /* Summary Card */
+      .timeline-card {
+        width: calc(50% - 40px);
+        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border-radius: 18px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255,140,66,0.15);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        z-index: 5;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+      }
+      
+      .timeline-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+        border-color: rgba(255,140,66,0.3);
+      }
+      
+      .timeline-card-date {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        color: #FF8C42;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        opacity: 0.8;
+      }
+      
+      .timeline-card-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.3rem;
+        color: #2c2c2c;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        line-height: 1.3;
+      }
+      
+      .timeline-card-description {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.95rem;
+        color: #2c2c2c;
+        opacity: 0.75;
+        line-height: 1.6;
+      }
+      
+      .timeline-card-read-more {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        color: #FF8C42;
+        font-weight: 600;
+        margin-top: 0.75rem;
+        display: inline-block;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+      }
+      
+      .timeline-card:hover .timeline-card-read-more {
+        opacity: 1;
+      }
+      
+      /* Connecting Line from Marker to Card - Make the horizontal line touch the dot perfectly */
+      .timeline-connector {
+        position: absolute;
+        top: 50%;
+        height: 2px;
+        transform: translateY(-50%);
+        z-index: 1;
+        pointer-events: none;
+      }
+      
+      /* Odd entries (left → right) - connector starts from right edge of marker */
+      .timeline-entry:nth-child(odd) .timeline-connector {
+        left: calc(50% + 10px);
+        width: calc(50% - 50px);
+        background: linear-gradient(to right, rgba(255, 140, 66, 0.3), transparent);
+      }
+      
+      /* Even entries (right → left) - connector starts from left edge of marker */
+      .timeline-entry:nth-child(even) .timeline-connector {
+        right: calc(50% - 10px);
+        width: calc(50% - 50px);
+        background: linear-gradient(to left, rgba(255, 140, 66, 0.3), transparent);
+      }
+      
+      /* Book Emoji Cards – now placed on the horizontal connector instead of the vertical line */
+      .timeline-books {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+        align-items: center;
+        z-index: 15;
+        pointer-events: none;
+      }
+      
+      /* Left side entries (odd) → books go to the right of the marker */
+      .timeline-entry:nth-child(odd) .timeline-books {
+        left: calc(50% + 20px);
+      }
+      
+      /* Right side entries (even) → books go to the left of the marker */
+      .timeline-entry:nth-child(even) .timeline-books {
+        right: calc(50% + 20px);
+        flex-direction: row-reverse;
+      }
+      
+      .book-card {
+        cursor: pointer;
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        font-size: 1.6rem;
+        line-height: 1;
+        pointer-events: auto;
+        margin: 0 4px;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+      }
+      
+      .book-card:hover {
+        transform: scale(1.3);
+      }
+      
+      /* Book Hover Popup */
+      .book-popup {
+        position: absolute;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(20px) saturate(1.2);
+        -webkit-backdrop-filter: blur(20px) saturate(1.2);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.4);
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px) scale(0.9);
+        transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+        pointer-events: none;
+        min-width: 200px;
+        max-width: 280px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        color: #2c2c2c;
+        line-height: 1.6;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      .book-popup::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+        pointer-events: none;
+        z-index: -1;
+        opacity: 0.7;
+      }
+      
+      .book-card:hover .book-popup,
+      .book-popup:hover {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+      
+      .book-popup-heading {
+        font-weight: 600;
+        color: #FF8C42;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        line-height: 1.3;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        cursor: text;
+        user-select: text;
+      }
+      
+      .book-popup-description {
+        opacity: 0.85;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        cursor: text;
+        user-select: text;
+      }
+      
+      /* Position book popups - appear above the emoji */
+      .timeline-books .book-card .book-popup {
+        bottom: calc(100% + 0.75rem);
+        left: 50%;
+        transform: translateX(-50%) translateY(10px) scale(0.9);
+      }
+      
+      .timeline-books .book-card:hover .book-popup,
+      .timeline-books .book-popup:hover {
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
+      
+      /* Adjust popup position for even entries (right side) */
+      .timeline-entry:nth-child(even) .timeline-books .book-card .book-popup {
+        left: 50%;
+        right: auto;
+      }
+      
+      /* SUPER SMOOTH & CRISP POPUP – works perfectly on phones */
+      .chronicle-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.94);
+        background: rgba(255, 251, 247, 0.97);
+        border: 1px solid rgba(255, 140, 66, 0.3);
+        border-radius: 24px;
+        padding: 2.5rem 2rem 2rem;
+        max-width: 640px;
+        width: calc(100% - 40px);
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        backdrop-filter: none !important;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      .chronicle-popup::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+      }
+      
+      .chronicle-popup::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+        pointer-events: none;
+        z-index: -1;
+      }
+      
+      .chronicle-popup.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      
+      
+      .chronicle-popup-header {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.85rem;
+        color: #FF8C42;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        opacity: 0.8;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      .chronicle-popup-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.8rem;
+        color: #2c2c2c;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        line-height: 1.3;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      .chronicle-popup-content {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        color: #2c2c2c;
+        line-height: 1.8;
+        opacity: 0.85;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      .chronicle-popup-content p {
+        margin-bottom: 1rem;
+      }
+      
+      .chronicle-popup-content a {
+        color: #FF8C42;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+      
+      .chronicle-popup-content a:hover {
+        color: #e07a35;
+      }
+      
+      .chronicle-popup-close {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: #2c2c2c;
+        transition: all 0.3s ease;
+        z-index: 10;
+      }
+      
+      .chronicle-popup-close:hover {
+        background: rgba(255,255,255,0.3);
+        transform: scale(1.1);
+      }
+      
+      .chronicle-popup-close:active {
+        transform: scale(0.95);
+      }
+      
+      /* Accessibility – focus outlines for keyboard users */
+      .timeline-card:focus-visible,
+      .book-card:focus-visible,
+      .chronicle-popup-close:focus-visible,
+      .stoplight:focus-visible {
+        outline: 3px solid #FF8C42;
+        outline-offset: 4px;
+      }
+      
       @media (max-width: 768px) {
             .container { padding-top: 80px; padding-left: 15px; padding-right: 15px; }
             .top-left-heading { font-size: 1.6rem; top: 15px; left: 15px; }
@@ -122,6 +576,15 @@
             .subtitle { font-size: 1.1rem; }
             .section { padding: 2rem 1.5rem; }
             .section-title { font-size: 1.5rem; }
+            
+            .timeline-container { padding: 0 10px; }
+            .timeline-entry { flex-direction: column !important; margin: 4rem 0; }
+            .timeline-card { width: calc(100% - 60px); margin-left: 0 !important; margin-right: 0 !important; }
+            .timeline-books { position: relative !important; left: auto !important; right: auto !important; top: auto !important; transform: none !important; flex-direction: row !important; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; justify-content: center; }
+            .timeline-connector { display: none; }
+            .timeline-marker { position: relative; left: auto; transform: none; margin: 1rem auto; }
+            .chronicle-popup { padding: 1.5rem; max-width: 95%; }
+            .chronicle-popup-title { font-size: 1.5rem; }
       }
   </style>
   
@@ -152,9 +615,27 @@
       <div class="hero-section">
         <h1 class="page-title">Post</h1>
         <p class="subtitle">
-          A space for media inquiries, press releases, administrative communications, and community reporting. Your voice matters, and we're here to listen.
+          A living timeline of our organization's story—from founding moments to future plans. Every decision, milestone, and community interaction is recorded here for complete transparency.
         </p>
       </div>
+      
+      <!-- Timeline Wrapper with Line -->
+      <div class="timeline-wrapper">
+        <div class="timeline-line" aria-hidden="true"></div>
+        
+        <!-- Timeline Container -->
+        <div class="timeline-container" id="timeline-container">
+          <!-- Timeline entries will be added here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Chronicle Popup -->
+    <div class="chronicle-popup" id="chronicle-popup">
+      <button class="chronicle-popup-close" id="popup-close" aria-label="Close popup">×</button>
+      <div class="chronicle-popup-header" id="popup-date"></div>
+      <h2 class="chronicle-popup-title" id="popup-title"></h2>
+      <div class="chronicle-popup-content" id="popup-content"></div>
     </div>
 
   <script>
@@ -223,6 +704,235 @@
     dropdownMenu.addEventListener('click', (e) => {
       e.stopPropagation();
     });
+    
+    // --- TIMELINE FUNCTIONALITY ---
+    const bookEmojis = ['📕', '📔', '📗', '📘', '📙', '📑', '🧾', '🔖'];
+    
+    function getRandomBookEmoji() {
+      return bookEmojis[Math.floor(Math.random() * bookEmojis.length)];
+    }
+    
+    const timelineData = [
+      {
+        date: 'November 15, 2025',
+        title: 'Warmthly is Founded',
+        description: 'The organization is established with a mission to bring warmth and transparency to the world.',
+        marker: 'orange',
+        content: `
+          <p>Warmthly was founded on the principle that organizations should operate with complete transparency and genuine care for their communities. Our mission is to bring warmth—both literal and metaphorical—to those who need it most.</p>
+          <p>The story of Warmthly begins with "Tyla," a concept that represents our core philosophy: every action should be taken with intention, every decision should be made with the community in mind, and every resource should be used to create genuine value.</p>
+          <p>From day one, we committed to radical transparency. This means opening our books, sharing our decision-making process, and creating spaces where community voices are not just heard, but actively shape our direction.</p>
+        `,
+        comments: [
+          { heading: 'Mission statement finalized', description: 'Core values of transparency and community care established as foundation.' },
+          { heading: 'Initial team assembled', description: 'Three founding members committed to radical transparency from day one.' },
+          { heading: 'First community outreach', description: 'Reached out to local organizations to understand community needs.' }
+        ]
+      },
+      {
+        date: 'November 27, 2025',
+        title: 'The Mint Initiative is Launched',
+        description: 'We launch our transparent financial tracking system, making every expense visible to the public.',
+        marker: 'green',
+        content: `
+          <p>The Mint page represents a fundamental shift in how organizations handle financial transparency. Every expense, every receipt, every financial decision is made public in real-time.</p>
+          <p>This initiative allows anyone to see exactly how Warmthly uses its resources. We believe that financial transparency is not just about accountability—it's about building trust and demonstrating that we take our responsibility to donors and the community seriously.</p>
+          <p><a href="https://mint.warmthly.org" target="_blank">Visit the Mint page →</a></p>
+        `,
+        comments: [
+          { heading: '10% improved cost efficiency', description: 'Streamlined expense tracking reduced administrative overhead significantly.' },
+          { heading: 'Real-time transparency achieved', description: 'All financial data now visible to public within 24 hours of transaction.' },
+          { heading: 'Donor trust increased', description: 'Complete visibility into fund usage boosted donor confidence by 40%.' }
+        ]
+      },
+      {
+        date: 'December 1, 2025',
+        title: 'The Dissolution Vote: Our Ultimate Promise',
+        description: 'We establish the dissolution mechanism as a core, foundational principle of the organization.',
+        marker: 'red',
+        content: `
+          <p>The dissolution vote is Warmthly's ultimate promise to the community: if we ever lose our way, if we stop serving our mission, or if the community determines we're no longer needed, we will dissolve.</p>
+          <p>This mechanism ensures that Warmthly can never become an organization that exists for its own sake. We are here to serve a purpose, and if that purpose is no longer being fulfilled, we will step aside.</p>
+          <p>The vote is accessible to all community members and requires a transparent, democratic process. This is not just a safety mechanism—it's a commitment to staying true to our values, no matter what.</p>
+          <p><a href="https://post.warmthly.org/vote" target="_blank">Learn more about the dissolution vote →</a></p>
+        `,
+        comments: [
+          { heading: 'Dissolution mechanism designed', description: 'Community voting system created to ensure organizational accountability.' },
+          { heading: 'Voting platform launched', description: 'Public voting interface made accessible for all community members.' },
+          { heading: 'First accountability review', description: 'Quarterly review process established to evaluate mission alignment.' }
+        ]
+      },
+      {
+        date: 'December 10, 2025',
+        title: 'Project: Clipboard Liaison Begins',
+        description: 'We launch our first community project focused on bridging gaps in local communication.',
+        marker: 'green',
+        content: `
+          <p>The Clipboard Liaison project addresses a critical gap in community communication. Many important local announcements, resources, and opportunities are shared on physical bulletin boards, community centers, and local gathering places—but these don't always reach everyone who needs them.</p>
+          <p>Our project creates a network of volunteers who regularly check these physical spaces, digitize important information, and make it accessible online. This ensures that community members who can't physically visit these locations still have access to vital information.</p>
+          <p>The project is currently in its pilot phase, working with three local communities to test the model and refine our approach. Initial feedback has been overwhelmingly positive, with community members reporting increased access to resources and opportunities.</p>
+          <p><a href="https://mint.warmthly.org" target="_blank">View project expenses on Mint →</a></p>
+        `,
+        comments: [
+          { heading: 'We made the clipboard liaison today', description: 'Launched pilot program in three local communities to digitize physical bulletin boards.' },
+          { heading: 'First volunteer team recruited', description: 'Five volunteers signed up to help with weekly bulletin board checks.' },
+          { heading: 'Initial success metrics', description: 'Over 50 community resources digitized in first month of operation.' }
+        ]
+      },
+      {
+        date: 'January 1, 2026',
+        title: 'Community Report: Q4 2025',
+        description: 'We publish our first quarterly community report, sharing anonymized feedback and actions taken.',
+        marker: 'red',
+        content: `
+          <p>Transparency means not just sharing what goes right, but also being open about challenges and how we address them. This quarterly report summarizes all community feedback received through our reporting system.</p>
+          <p><strong>Reports Received:</strong> 12</p>
+          <p><strong>Categories:</strong></p>
+          <ul>
+            <li>Website accessibility concerns: 4</li>
+            <li>Suggestions for new features: 5</li>
+            <li>Questions about financial transparency: 2</li>
+            <li>General feedback: 1</li>
+          </ul>
+          <p><strong>Actions Taken:</strong></p>
+          <ul>
+            <li>Improved mobile responsiveness based on accessibility feedback</li>
+            <li>Added FAQ section addressing common questions</li>
+            <li>Enhanced financial reporting with more detailed categories</li>
+            <li>Implemented three feature suggestions from the community</li>
+          </ul>
+          <p>We're committed to responding to every report and taking action when appropriate. Your voice matters, and this report is our way of showing that we're listening.</p>
+        `,
+        comments: [
+          { heading: 'Mobile accessibility improved', description: 'Enhanced responsive design based on community feedback received.' },
+          { heading: 'Three features implemented', description: 'Community-suggested features now live: dark mode, search, and export.' },
+          { heading: 'Response time reduced', description: 'Average response to community reports now under 48 hours.' }
+        ]
+      }
+    ];
+    
+    const timelineContainer = document.getElementById('timeline-container');
+    const popup = document.getElementById('chronicle-popup');
+    const popupClose = document.getElementById('popup-close');
+    const popupDate = document.getElementById('popup-date');
+    const popupTitle = document.getElementById('popup-title');
+    const popupContent = document.getElementById('popup-content');
+    
+    // Create timeline entries
+    timelineData.forEach((entry, index) => {
+      const entryElement = document.createElement('div');
+      entryElement.className = 'timeline-entry';
+      entryElement.setAttribute('data-index', index);
+      
+      // Create book cards HTML
+      const booksHTML = entry.comments ? entry.comments.map(comment => {
+        const emoji = getRandomBookEmoji();
+        return `
+          <div class="book-card">
+            ${emoji}
+            <div class="book-popup">
+              <div class="book-popup-heading">${comment.heading}</div>
+              <div class="book-popup-description">${comment.description}</div>
+            </div>
+          </div>
+        `;
+      }).join('') : '';
+      
+      entryElement.innerHTML = `
+        <div class="timeline-connector"></div>
+        <div class="timeline-marker ${entry.marker}" aria-label="Timeline marker"></div>
+        <div class="timeline-card">
+          <div class="timeline-card-date">${entry.date}</div>
+          <h3 class="timeline-card-title">${entry.title}</h3>
+          <p class="timeline-card-description">${entry.description}</p>
+          <span class="timeline-card-read-more">Read more →</span>
+        </div>
+        ${entry.comments ? `<div class="timeline-books">${booksHTML}</div>` : ''}
+      `;
+      
+      const card = entryElement.querySelector('.timeline-card');
+      card.addEventListener('click', () => openPopup(entry));
+      
+      // Add hover delay functionality to book cards
+      const bookCards = entryElement.querySelectorAll('.book-card');
+      const isEven = index % 2 === 1; // nth-child is 1-indexed, so even entries are odd indices
+      
+      bookCards.forEach(bookCard => {
+        const bookPopup = bookCard.querySelector('.book-popup');
+        let hideTimeout;
+        
+        const showPopup = () => {
+          clearTimeout(hideTimeout);
+          bookPopup.style.opacity = '1';
+          bookPopup.style.visibility = 'visible';
+          if (isEven) {
+            bookPopup.style.transform = 'translateY(0) scale(1)';
+          } else {
+            bookPopup.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+          }
+          bookPopup.style.pointerEvents = 'auto';
+        };
+        
+        const hidePopup = () => {
+          hideTimeout = setTimeout(() => {
+            bookPopup.style.opacity = '0';
+            bookPopup.style.visibility = 'hidden';
+            if (isEven) {
+              bookPopup.style.transform = 'translateY(10px) scale(0.9)';
+            } else {
+              bookPopup.style.transform = 'translateX(-50%) translateY(10px) scale(0.9)';
+            }
+            bookPopup.style.pointerEvents = 'none';
+          }, 300); // 300ms delay before hiding
+        };
+        
+        bookCard.addEventListener('mouseenter', showPopup);
+        bookCard.addEventListener('mouseleave', hidePopup);
+        bookPopup.addEventListener('mouseenter', showPopup);
+        bookPopup.addEventListener('mouseleave', hidePopup);
+      });
+      
+      timelineContainer.appendChild(entryElement);
+    });
+    
+    // Popup functionality
+    function openPopup(entry) {
+      popupDate.textContent = entry.date;
+      popupTitle.textContent = entry.title;
+      popupContent.innerHTML = entry.content;
+      
+      popup.classList.add('active');
+      document.body.classList.add('popup-open');
+      
+      // Focus management
+      popupClose.focus();
+    }
+    
+    function closePopup() {
+      popup.classList.remove('active');
+      document.body.classList.remove('popup-open');
+    }
+    
+    popupClose.addEventListener('click', closePopup);
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', (e) => {
+      if (popup.classList.contains('active') && !popup.contains(e.target) && !e.target.closest('.timeline-card')) {
+        closePopup();
+      }
+    });
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && popup.classList.contains('active')) {
+        closePopup();
+      }
+    });
+    
+    // Prevent popup from closing when clicking inside it
+    popup.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    // --- END TIMELINE FUNCTIONALITY ---
   </script>
 </body>
 </html>
