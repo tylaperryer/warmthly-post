@@ -616,6 +616,10 @@
         pointer-events: none;
         opacity: 0.3;
         user-select: none;
+        font-family: Arial, sans-serif;
+        font-size: 40px;
+        text-anchor: middle;
+        dominant-baseline: central;
       }
       
       /* Heatmap intensity levels for emoji */
@@ -1125,7 +1129,13 @@
             this.svg.setAttribute('viewBox', '0 0 3129 1736');
           }
           
+          // Make sure SVG is visible
+          this.svg.setAttribute('style', 'display: block; width: 100%; height: auto;');
+          this.svgContainer.setAttribute('style', 'display: block; width: 100%; max-width: 600px;');
+          
           console.log('SVG loaded and initialized successfully');
+          console.log(`[WorldMap] SVG container visible: ${this.svgContainer.offsetWidth > 0 ? 'YES' : 'NO'}`);
+          console.log(`[WorldMap] SVG element visible: ${this.svg.offsetWidth > 0 ? 'YES' : 'NO'}`);
           
         } catch (error) {
           console.error('Error loading SVG:', error);
@@ -1172,8 +1182,10 @@
               text.setAttribute('x', cx);
               text.setAttribute('y', cy);
               text.setAttribute('text-anchor', 'middle');
-              text.setAttribute('dominant-baseline', 'middle');
-              text.setAttribute('font-size', '20');
+              text.setAttribute('dominant-baseline', 'central');
+              text.setAttribute('font-size', '40');
+              text.setAttribute('font-family', 'Arial, sans-serif');
+              text.setAttribute('style', 'pointer-events: none;');
               text.textContent = '💡';
               text.id = dotId;
               text.classList.add('intensity-0');
@@ -1206,16 +1218,28 @@
           
           console.log(`[WorldMap] ✓ Initialized ${this.dots.size} dots (${errors} errors)`);
           
-          // DEBUG: Log first 5 dot coordinates
+          // DEBUG: Log first 5 dot coordinates and verify visibility
           let count = 0;
           this.dots.forEach((dotInfo, dotId) => {
             if (count < 5) {
-              const cx = dotInfo.element.getAttribute('x');
-              const cy = dotInfo.element.getAttribute('y');
-              console.log(`[WorldMap] Sample dot: ${dotId} at (${cx}, ${cy})`);
+              const element = dotInfo.element;
+              const cx = element.getAttribute('x');
+              const cy = element.getAttribute('y');
+              const fontSize = element.getAttribute('font-size');
+              const isVisible = element.offsetWidth > 0 || element.getBoundingClientRect().width > 0;
+              console.log(`[WorldMap] Sample dot: ${dotId} at (${cx}, ${cy}), font-size: ${fontSize}, visible: ${isVisible}`);
               count++;
             }
           });
+          
+          // Verify at least some text elements exist in the SVG
+          const textElements = this.svg.querySelectorAll('text');
+          console.log(`[WorldMap] Total text elements in SVG: ${textElements.length}`);
+          if (textElements.length > 0) {
+            const firstText = textElements[0];
+            const rect = firstText.getBoundingClientRect();
+            console.log(`[WorldMap] First text element bounding rect:`, rect);
+          }
         } catch (err) {
           console.error('[WorldMap] ❌ Fatal error in initializeDots():', err);
         }
