@@ -568,6 +568,24 @@
         outline-offset: 4px;
       }
       
+      /* World Map Container */
+      .world-map-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 3rem auto;
+        padding: 0 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: transparent;
+      }
+      
+      world-map-svg {
+        display: block;
+        width: 100%;
+        max-width: 800px;
+      }
+      
       @media (max-width: 768px) {
             .container { padding-top: 80px; padding-left: 15px; padding-right: 15px; }
             .top-left-heading { font-size: 1.6rem; top: 15px; left: 15px; }
@@ -587,6 +605,9 @@
             .timeline-marker { position: relative; left: auto; transform: none; margin: 1rem auto; }
             .chronicle-popup { padding: 1.5rem; max-width: 95%; }
             .chronicle-popup-title { font-size: 1.5rem; }
+            
+            .world-map-container { padding: 0 1rem; margin: 2rem auto; }
+            world-map-svg { max-width: 100%; }
       }
   </style>
   
@@ -619,6 +640,11 @@
         <p class="subtitle">
           A living timeline of our organization's story—from founding moments to future plans. Every decision, milestone, and community interaction is recorded here for complete transparency.
         </p>
+      </div>
+      
+      <!-- World Map SVG (Web Component with custom SVG) -->
+      <div class="world-map-container">
+        <world-map-svg></world-map-svg>
       </div>
       
       <!-- Timeline Wrapper with Line -->
@@ -951,6 +977,115 @@
       e.stopPropagation();
     });
     // --- END TIMELINE FUNCTIONALITY ---
+    
+    // --- World Map SVG Component ---
+    class WorldMapSVG extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+
+        // State
+        this.svgContainer = null;
+        this.svg = null;
+      }
+
+      // Web Component lifecycle
+      connectedCallback() {
+        this.init();
+      }
+
+      disconnectedCallback() {
+        this.destroy();
+      }
+
+      async init() {
+        this.createContainer();
+        await this.loadSVG();
+      }
+
+      // Create container element in shadow DOM
+      createContainer() {
+        const style = document.createElement('style');
+        style.textContent = `
+          .world-map-svg-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0;
+          }
+          
+          .world-map-svg-container svg {
+            display: block;
+            width: 100%;
+            height: auto;
+          }
+          
+          .dot {
+            fill: #FFB88C;
+            opacity: 0.6;
+          }
+        `;
+        this.shadowRoot.appendChild(style);
+        
+        const container = document.createElement('div');
+        container.className = 'world-map-svg-container';
+        this.shadowRoot.appendChild(container);
+        this.svgContainer = container;
+      }
+
+      // Load SVG
+      async loadSVG() {
+        try {
+          const paths = ['./worlddots.svg', 'worlddots.svg', '/worlddots.svg'];
+          let svgText = null;
+          
+          for (const path of paths) {
+            try {
+              const response = await fetch(path);
+              if (response.ok) {
+                svgText = await response.text();
+                break;
+              }
+            } catch (err) {
+              // Ignore fetch errors
+            }
+          }
+          
+          if (!svgText) {
+            throw new Error('SVG file not found.');
+          }
+          
+          this.svgContainer.innerHTML = svgText;
+          this.svg = this.svgContainer.querySelector('svg');
+          
+          if (!this.svg) {
+            throw new Error('SVG element not found in loaded content');
+          }
+          
+          // Ensure viewBox is set (assuming the original 3129x1736 viewBox)
+          if (!this.svg.getAttribute('viewBox')) {
+            this.svg.setAttribute('viewBox', '0 0 3129 1736');
+          }
+          
+          // Set uniform styling for all circles
+          this.svg.querySelectorAll('circle').forEach(circle => {
+            circle.setAttribute('fill', '#FFB88C');
+            circle.setAttribute('opacity', '0.6');
+          });
+          
+        } catch (error) {
+          console.error('Error loading SVG:', error);
+          this.svgContainer.innerHTML = '<p style="color: red;">Error loading map.</p>';
+        }
+      }
+
+      destroy() {
+        // Nothing to clean up
+      }
+    }
+
+    // Register the new component
+    customElements.define('world-map-svg', WorldMapSVG);
   </script>
 </body>
 </html>
