@@ -79,7 +79,7 @@
       .vote-stats { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; opacity: 0.8; padding: 0 5px; }
       
       .vote-question { font-family: 'Inter', sans-serif; font-size: 1.6rem; color: #FF8C42; margin-bottom: 1.5rem; font-weight: 600; text-align: center; }
-      .vote-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; justify-content: center; align-items: center; }
+      .vote-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; justify-content: center; align-items: center; margin-top: 2rem; }
       
       .vote-button { background: rgba(255,255,255,0.15); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 1rem 2rem; font-family: 'Inter', sans-serif; font-size: 1.1rem; font-weight: 600; color: #2c2c2c; cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
       .vote-button:hover { background: rgba(255,140,66,0.15); color: #FF8C42; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255,140,66,0.15); }
@@ -99,7 +99,8 @@
       }
       
       /* Error message styling */
-      .error-message { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #ff4757; font-family: 'Inter', sans-serif; font-size: 0.9rem; }
+      .error-message { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #ff4757; font-family: 'Inter', sans-serif; font-size: 0.9rem; display: none; }
+      .error-message.visible { display: block; }
       
       @media (max-width: 768px) {
             .container { padding-top: 80px; padding-left: 15px; padding-right: 15px; }
@@ -158,13 +159,13 @@
           <span>100,000 vote threshold</span>
       </div>
 
-      <div class="vote-buttons" style="margin-top: 2rem;">
+      <div class="vote-buttons">
         <button class="vote-button" id="yesButton" aria-label="Yes, dissolve Warmthly">Yes, dissolve.</button>
         <button class="vote-button" id="noButton" aria-label="No, continue Warmthly">No, continue.</button>
       </div>
 
       <p class="vote-note" id="voteStatus">Please cast your vote.</p>
-      <div id="errorMessage" class="error-message" style="display: none;" role="alert" aria-live="polite"></div>
+      <div id="errorMessage" class="error-message" role="alert" aria-live="polite"></div>
     </div>
   </div>
   
@@ -258,7 +259,7 @@
       const errorEl = document.getElementById('errorMessage');
       if (errorEl) {
         errorEl.textContent = 'Voting service is not configured. Please contact the administrator.';
-        errorEl.style.display = 'block';
+        errorEl.classList.add('visible');
       }
     } else {
       try {
@@ -268,7 +269,7 @@
         const errorEl = document.getElementById('errorMessage');
         if (errorEl) {
           errorEl.textContent = 'Failed to initialize voting service. Please refresh the page.';
-          errorEl.style.display = 'block';
+          errorEl.classList.add('visible');
         }
       }
     }
@@ -291,7 +292,7 @@
     function showError(message) {
       if (errorMessage) {
         errorMessage.textContent = message;
-        errorMessage.style.display = 'block';
+        errorMessage.classList.add('visible');
         voteStatus.style.display = 'none';
       }
     }
@@ -299,7 +300,7 @@
     // Helper function to hide error
     function hideError() {
       if (errorMessage) {
-        errorMessage.style.display = 'none';
+        errorMessage.classList.remove('visible');
         voteStatus.style.display = 'block';
       }
     }
